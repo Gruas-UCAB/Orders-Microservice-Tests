@@ -19,6 +19,9 @@ using OrdersMicroservice.src.order.infrastructure.validators;
 using OrdersMicroservice.core.Common;
 using OrdersMicroservice.src.order.application.repositories.dto;
 using OrdersMicroservice.src.order.application.repositories.exceptions;
+using OrdersMicroservice.src.order.application.commands.update_extra_cost.types;
+using OrdersMicroservice.src.order.application.commands.update_extra_cost;
+using OrdersMicroservice.src.order.infrastructure.dto;
 
 
 namespace TestOrderMicoservice.extraCostTests
@@ -165,6 +168,51 @@ namespace TestOrderMicoservice.extraCostTests
             Assert.True(result is NotFoundObjectResult);
         }
 
+        [Fact]
+        public async Task UpdateExtraCost_ReturnsOkResult_WhenUpdateIsSuccessful()
+        {
+            // Arrange
+            var data = new UpdateExtraCostDto("New Description", 150m);
+            var extracdId = "ded942ce-dcbf-4e3b-bb29-13a212d8710e";
+            var extraCost = new ExtraCost(
+                                new ExtraCostId(extracdId),
+                                new ExtraCostDescription("Valid Description"),
+                                new ExtraCostPrice(10)
+                );
+            _mockExtraCostRepository.Setup(r => r.GetExtraCostById(It.IsAny<ExtraCostId>())).ReturnsAsync(_Optional<ExtraCost>.Of(extraCost));
+            var service = new UpdateExtraCostCommandHandler(_mockExtraCostRepository.Object);
+            var response = await service.Execute(new UpdateExtraCostCommand(extracdId, data.Description, data.DefaultPrice));
 
+            // Act
+            var result = await _controller.UpdateExtraCost(data, extracdId);
+
+            // Assert
+            Assert.True(result is OkObjectResult);
+
+        }
+
+
+        [Fact]
+        public async Task UpdateExtraCost_ReturnsBadRequest_WhenBothFieldsAreNull()
+        {
+            // Arrange
+            var data = new UpdateExtraCostDto(null, null);
+            var extracdId = "ded942ce-dcbf-4e3b-bb29-13a212d8710e";
+            var extraCost = new ExtraCost(
+                                new ExtraCostId(extracdId),
+                                new ExtraCostDescription("Valid Description"),
+                                new ExtraCostPrice(10)
+                );
+            _mockExtraCostRepository.Setup(r => r.GetExtraCostById(It.IsAny<ExtraCostId>())).ReturnsAsync(_Optional<ExtraCost>.Of(extraCost));
+            var service = new UpdateExtraCostCommandHandler(_mockExtraCostRepository.Object);
+            var response = await service.Execute(new UpdateExtraCostCommand(extracdId, data.Description, data.DefaultPrice));
+
+            // Act
+            var result = await _controller.UpdateExtraCost(data, extracdId);
+
+            // Assert
+            Assert.True(result is BadRequestObjectResult);
+
+        }
     }
 }

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TestOrderMicoservice")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c4309763011c1a4d4af41557b5d4dc4de334b699")]
 [assembly: System.Reflection.AssemblyProductAttribute("TestOrderMicoservice")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TestOrderMicoservice")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

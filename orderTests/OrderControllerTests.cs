@@ -51,6 +51,8 @@ using OrdersMicroservice.src.extracost.domain.value_objects;
 using OrdersMicroservice.src.order.domain.entities.extraCost;
 using OrdersMicroservice.src.order.application.commands.cancel_order.types;
 using OrdersMicroservice.src.order.application.commands.cancel_order;
+using OrdersMicroservice.src.order.application.commands.edit_order_extra_costs.types;
+using OrdersMicroservice.src.order.application.commands.edit_order_extra_costs;
 
 namespace TestOrderMicoservice.orderTests
 {
@@ -1048,9 +1050,523 @@ namespace TestOrderMicoservice.orderTests
           
 
         }
+        [Fact]
+        public async Task GetAllOrdersByConductor_ReturnsOkResult_WhenOrdersExist()
+        {
+            // Arrange
+            var conductorId = "cc964c7b-dacb-4196-9793-ed09705ba773";
+            var orderDate = new DateTime(2025, 12, 31, 23, 59, 59);
+            int orderNumber = 1001;
+            var orderId = "30d812e4-0437-496e-95e8-2037cf1f2eae";
+            var order = Order.Create(
+                              new OrderId(orderId),
+                              new OrderNumber(orderNumber),
+                              new OrderDate(orderDate),
+                              new OrderStatus("por asignar"),
+                              new IncidentType("vehiculo accidentado"),
+                              new OrderDestination("40.7128,-74.0060"),
+                              new OrderLocation("39.7128,-71.0060"),
+                              new OrderDispatcherId("0db44d22-19e6-44d0-8f09-8aa0be5a93c4"),
+                              new OrderCost(420),
+                              new ContractId("f57f0a79-b23b-496b-bcae-f9ef13529232")
+                              ); 
+            var orders = new List<Order>
+        {
+             order,
+        };
+            var extracdId = "ded942ce-dcbf-4e3b-bb29-13a212d8710e";
+            var extraCost = new ExtraCost(
+                                new ExtraCostId(extracdId),
+                                new ExtraCostDescription("Cambio de neumatico"),
+                                new ExtraCostPrice(10)
+                );
+            var extraCosts = new List<ExtraCost>
+            {
+                extraCost,
+            };
+            order.AddExtraCosts(extraCosts);
+            order.AssignConductor(new ConductorAssignedId(conductorId));
+            var optionalOrders = _Optional<List<Order>>.Of(orders);
+  
+            _mockOrderRepository
+               .Setup(repo => repo.GetAllOrdersByConductorId(It.IsAny<ConductorAssignedId>()))
+                .ReturnsAsync(_Optional<List<Order>>.Of(orders));
+
+            // Act
+            var result = await _controller.GetAllOrdersByConductor(conductorId);
+
+            // Assert
+            Assert.True(result is OkObjectResult);
+        }
+
+        [Fact]
+        public async Task GetAllOrdersByConductor_ReturnsBadRequest_WhenNoOrdersExist()
+        {
+            // Arrange
+            var conductorId = "cc964c7b-dacb-4196-9793-ed09705ba773";
+
+            _mockOrderRepository
+            .Setup(repo => repo.GetAllOrdersByConductorId(It.IsAny<ConductorAssignedId>()))
+                .ReturnsAsync(_Optional<List<Order>>.Empty());
+
+            // Act
+            var result = await _controller.GetAllOrdersByConductor(conductorId);
+
+            // Assert
+           Assert.True(result is BadRequestObjectResult);
+
+        }
+
+        [Fact]
+        public async Task GetCurrentOrderByConductor_ReturnsOkResult_WhenOrderExists()
+        {
+            // Arrange
+            var conductorId = "cc964c7b-dacb-4196-9793-ed09705ba773";
+            var orderDate = new DateTime(2025, 12, 31, 23, 59, 59);
+            int orderNumber = 1001;
+            var orderId = "30d812e4-0437-496e-95e8-2037cf1f2eae";
+            var order = Order.Create(
+                              new OrderId(orderId),
+                              new OrderNumber(orderNumber),
+                              new OrderDate(orderDate),
+                              new OrderStatus("por asignar"),
+                              new IncidentType("vehiculo accidentado"),
+                              new OrderDestination("40.7128,-74.0060"),
+                              new OrderLocation("39.7128,-71.0060"),
+                              new OrderDispatcherId("0db44d22-19e6-44d0-8f09-8aa0be5a93c4"),
+                              new OrderCost(420),
+                              new ContractId("f57f0a79-b23b-496b-bcae-f9ef13529232")
+                              );
+            var orders = new List<Order>
+        {
+             order,
+        };
+            var extracdId = "ded942ce-dcbf-4e3b-bb29-13a212d8710e";
+            var extraCost = new ExtraCost(
+                                new ExtraCostId(extracdId),
+                                new ExtraCostDescription("Cambio de neumatico"),
+                                new ExtraCostPrice(10)
+                );
+            var extraCosts = new List<ExtraCost>
+            {
+                extraCost,
+            };
+            order.AddExtraCosts(extraCosts);
+            order.AssignConductor(new ConductorAssignedId(conductorId));
+            var optionalOrders = _Optional<List<Order>>.Of(orders);
+            _mockOrderRepository
+            .Setup(repo => repo.GetCurrentOrderByConductorId(It.IsAny<ConductorAssignedId>()))
+                .ReturnsAsync(_Optional<Order>.Of(order));
+
+            // Act
+            var result = await _controller.GetCurrentOrderByConductor(conductorId);
+
+            // Assert
+            Assert.True(result is OkObjectResult);
+
+        }
+
+        [Fact]
+        public async Task GetCurrentOrderByConductor_ReturnsBadRequest_WhenNoOrderExists()
+        {
+            // Arrange
+            var conductorId = "cc964c7b-dacb-4196-9793-ed09705ba773";
+
+            _mockOrderRepository
+                .Setup(repo => repo.GetCurrentOrderByConductorId(It.IsAny<ConductorAssignedId>()))
+                .ReturnsAsync(_Optional<Order>.Empty());
+
+            // Act
+            var result = await _controller.GetCurrentOrderByConductor(conductorId);
+
+            // Assert
+            Assert.True(result is BadRequestObjectResult);
+
+        }
+
+        [Fact]
+        public async Task EditExtraCosts_ReturnsOkResult_WhenEditIsSuccessful()
+        {
+            // Arrange
+            var conductorId = "cc964c7b-dacb-4196-9793-ed09705ba773";
+            var orderDate = new DateTime(2025, 12, 31, 23, 59, 59);
+            int orderNumber = 1001;
+            var orderId = "30d812e4-0437-496e-95e8-2037cf1f2eae";
+            var order = Order.Create(
+                              new OrderId(orderId),
+                              new OrderNumber(orderNumber),
+                              new OrderDate(orderDate),
+                              new OrderStatus("localizado"),
+                              new IncidentType("vehiculo accidentado"),
+                              new OrderDestination("40.7128,-74.0060"),
+                              new OrderLocation("39.7128,-71.0060"),
+                              new OrderDispatcherId("0db44d22-19e6-44d0-8f09-8aa0be5a93c4"),
+                              new OrderCost(420),
+                              new ContractId("f57f0a79-b23b-496b-bcae-f9ef13529232")
+                              );
+            var orders = new List<Order>
+        {
+             order,
+        };
+            var extracdId = "ded942ce-dcbf-4e3b-bb29-13a212d8710e";
+            var extraCostest = new ExtraCost(
+                                new ExtraCostId(extracdId),
+                                new ExtraCostDescription("Cambio de neumatico"),
+                                new ExtraCostPrice(10)
+                );
+            var extraCostsL = new List<ExtraCost>
+            {
+                extraCostest,
+            };
+            order.AddExtraCosts(extraCostsL);
+            order.AssignConductor(new ConductorAssignedId(conductorId));
+            var optionalOrders = _Optional<List<Order>>.Of(orders);
+            var extraCosts = new List<ExtraCostEditedDto>
+        {
+            new ExtraCostEditedDto(extracdId, 100m)
+        };
+            var data = new EditExtraCostsDto(extraCosts);
+
+            var optionalOrder = _Optional<Order>.Of(order);
+            _mockOrderRepository.Setup(repo => repo.GetOrderById(It.IsAny<OrderId>()))
+              .ReturnsAsync(optionalOrder);
+
+            var policyId = "c4b13887-0e46-4b28-a24b-9b74c6001324";
+            var vehicleId = "fad74e97-5e31-42ff-8a06-5f1a14687a6e";
+            var contratId = "fa750e04-c73c-459f-8a5b-f599996d1b59";
+            var expirationDate = new DateTime(2033, 12, 31, 23, 59, 59);
+            var policy = new Policy(
+                 new PolicyId(policyId),
+                 new PolicyName("Policy Name"),
+                 new PolicyMonetaryCoverage(1000),
+                 new PolicyKmCoverage(100),
+                 new PolicyBaseKmPrice(10)
+                 );
+            var vehicle = new Vehicle(
+                              new VehicleId(vehicleId),
+                              new VehicleLicensePlate("ab143cd"),
+                              new VehicleBrand("Brand"),
+                              new VehicleModel("Model"),
+                              new VehicleYear(2020),
+                              new VehicleColor("Red"),
+                              new VehicleKm(10000),
+                              new VehicleOwnerDni(12345678),
+                              new VehicleOwnerName("Owner")
+                              );
+
+            var contract = Contract.Create(
+                                    new ContractId(contratId),
+                                    new NumberContract(1001),
+                                    new ContractExpitionDate(expirationDate),
+                                    vehicle,
+                                    policy
+
+                               );
+            var optionalContract = _Optional<Contract>.Of(contract);
+            _mockContractRepository.Setup(repo => repo.GetContractById(It.IsAny<ContractId>())).ReturnsAsync(optionalContract);
+
+        
+            _mockExtraCostRepository.Setup(r => r.GetExtraCostById(It.IsAny<ExtraCostId>())).
+                ReturnsAsync(_Optional<ExtraCost>.Of(extraCostest));
+
+            var service = new EditOrderExtraCostsCommandHandler(_mockOrderRepository.Object,
+                _mockContractRepository.Object, _mockExtraCostRepository.Object);
+            var response = await service.Execute(new EditOrderExtraCostsCommand(orderId, data.ExtraCosts));
+
+            // Act
+            var result = await _controller.EditExtraCosts(data, orderId);
+
+            // Assert
+            Assert.True(result is OkObjectResult);
+
+        }
+
+
+        [Fact]
+        public async Task EditExtraCosts_ReturnsBadRequest_OrderNotFounf()
+        {
+            // Arrange
+            var conductorId = "cc964c7b-dacb-4196-9793-ed09705ba773";
+            var orderDate = new DateTime(2025, 12, 31, 23, 59, 59);
+            int orderNumber = 1001;
+            var orderId = "30d812e4-0437-496e-95e8-2037cf1f2eae";
+            var order = Order.Create(
+                              new OrderId(orderId),
+                              new OrderNumber(orderNumber),
+                              new OrderDate(orderDate),
+                              new OrderStatus("localizado"),
+                              new IncidentType("vehiculo accidentado"),
+                              new OrderDestination("40.7128,-74.0060"),
+                              new OrderLocation("39.7128,-71.0060"),
+                              new OrderDispatcherId("0db44d22-19e6-44d0-8f09-8aa0be5a93c4"),
+                              new OrderCost(420),
+                              new ContractId("f57f0a79-b23b-496b-bcae-f9ef13529232")
+                              );
+            var orders = new List<Order>
+        {
+             order,
+        };
+            var extracdId = "ded942ce-dcbf-4e3b-bb29-13a212d8710e";
+            var extraCostest = new ExtraCost(
+                                new ExtraCostId(extracdId),
+                                new ExtraCostDescription("Cambio de neumatico"),
+                                new ExtraCostPrice(10)
+                );
+            var extraCostsL = new List<ExtraCost>
+            {
+                extraCostest,
+            };
+            order.AddExtraCosts(extraCostsL);
+            order.AssignConductor(new ConductorAssignedId(conductorId));
+            var optionalOrders = _Optional<List<Order>>.Of(orders);
+            var extraCosts = new List<ExtraCostEditedDto>
+        {
+            new ExtraCostEditedDto(extracdId, 100m)
+        };
+            var data = new EditExtraCostsDto(extraCosts);
+
+            var optionalOrder = _Optional<Order>.Of(order);
+            _mockOrderRepository.Setup(repo => repo.GetOrderById(It.IsAny<OrderId>()))
+              .ReturnsAsync(_Optional<Order>.Empty());
+
+            var policyId = "c4b13887-0e46-4b28-a24b-9b74c6001324";
+            var vehicleId = "fad74e97-5e31-42ff-8a06-5f1a14687a6e";
+            var contratId = "fa750e04-c73c-459f-8a5b-f599996d1b59";
+            var expirationDate = new DateTime(2033, 12, 31, 23, 59, 59);
+            var policy = new Policy(
+                 new PolicyId(policyId),
+                 new PolicyName("Policy Name"),
+                 new PolicyMonetaryCoverage(1000),
+                 new PolicyKmCoverage(100),
+                 new PolicyBaseKmPrice(10)
+                 );
+            var vehicle = new Vehicle(
+                              new VehicleId(vehicleId),
+                              new VehicleLicensePlate("ab143cd"),
+                              new VehicleBrand("Brand"),
+                              new VehicleModel("Model"),
+                              new VehicleYear(2020),
+                              new VehicleColor("Red"),
+                              new VehicleKm(10000),
+                              new VehicleOwnerDni(12345678),
+                              new VehicleOwnerName("Owner")
+                              );
+
+            var contract = Contract.Create(
+                                    new ContractId(contratId),
+                                    new NumberContract(1001),
+                                    new ContractExpitionDate(expirationDate),
+                                    vehicle,
+                                    policy
+
+                               );
+            var optionalContract = _Optional<Contract>.Of(contract);
+            _mockContractRepository.Setup(repo => repo.GetContractById(It.IsAny<ContractId>())).ReturnsAsync(optionalContract);
+
+
+            _mockExtraCostRepository.Setup(r => r.GetExtraCostById(It.IsAny<ExtraCostId>())).
+                ReturnsAsync(_Optional<ExtraCost>.Of(extraCostest));
+
+            var service = new EditOrderExtraCostsCommandHandler(_mockOrderRepository.Object,
+                _mockContractRepository.Object, _mockExtraCostRepository.Object);
+            var response = await service.Execute(new EditOrderExtraCostsCommand(orderId, data.ExtraCosts));
+            // Act
+            var result = await _controller.EditExtraCosts(data, orderId);
+
+            // Assert
+            Assert.True(result is BadRequestObjectResult);
+        }
 
 
 
+        [Fact]
+        public async Task EditExtraCosts_ReturnsBadRequest_ExtraCostFound()
+        {
+            // Arrange
+            var conductorId = "cc964c7b-dacb-4196-9793-ed09705ba773";
+            var orderDate = new DateTime(2025, 12, 31, 23, 59, 59);
+            int orderNumber = 1001;
+            var orderId = "30d812e4-0437-496e-95e8-2037cf1f2eae";
+            var order = Order.Create(
+                              new OrderId(orderId),
+                              new OrderNumber(orderNumber),
+                              new OrderDate(orderDate),
+                              new OrderStatus("localizado"),
+                              new IncidentType("vehiculo accidentado"),
+                              new OrderDestination("40.7128,-74.0060"),
+                              new OrderLocation("39.7128,-71.0060"),
+                              new OrderDispatcherId("0db44d22-19e6-44d0-8f09-8aa0be5a93c4"),
+                              new OrderCost(420),
+                              new ContractId("f57f0a79-b23b-496b-bcae-f9ef13529232")
+                              );
+            var orders = new List<Order>
+        {
+             order,
+        };
+            var extracdId = "ded942ce-dcbf-4e3b-bb29-13a212d8710e";
+            var extraCostest = new ExtraCost(
+                                new ExtraCostId(extracdId),
+                                new ExtraCostDescription("Cambio de neumatico"),
+                                new ExtraCostPrice(10)
+                );
+            var extraCostsL = new List<ExtraCost>
+            {
+                extraCostest,
+            };
+            order.AddExtraCosts(extraCostsL);
+            order.AssignConductor(new ConductorAssignedId(conductorId));
+            var optionalOrders = _Optional<List<Order>>.Of(orders);
+            var extraCosts = new List<ExtraCostEditedDto>
+        {
+            new ExtraCostEditedDto(extracdId, 100m)
+        };
+            var data = new EditExtraCostsDto(extraCosts);
 
+            var optionalOrder = _Optional<Order>.Of(order);
+            _mockOrderRepository.Setup(repo => repo.GetOrderById(It.IsAny<OrderId>()))
+              .ReturnsAsync(optionalOrder);
+
+            var policyId = "c4b13887-0e46-4b28-a24b-9b74c6001324";
+            var vehicleId = "fad74e97-5e31-42ff-8a06-5f1a14687a6e";
+            var contratId = "fa750e04-c73c-459f-8a5b-f599996d1b59";
+            var expirationDate = new DateTime(2033, 12, 31, 23, 59, 59);
+            var policy = new Policy(
+                 new PolicyId(policyId),
+                 new PolicyName("Policy Name"),
+                 new PolicyMonetaryCoverage(1000),
+                 new PolicyKmCoverage(100),
+                 new PolicyBaseKmPrice(10)
+                 );
+            var vehicle = new Vehicle(
+                              new VehicleId(vehicleId),
+                              new VehicleLicensePlate("ab143cd"),
+                              new VehicleBrand("Brand"),
+                              new VehicleModel("Model"),
+                              new VehicleYear(2020),
+                              new VehicleColor("Red"),
+                              new VehicleKm(10000),
+                              new VehicleOwnerDni(12345678),
+                              new VehicleOwnerName("Owner")
+                              );
+
+            var contract = Contract.Create(
+                                    new ContractId(contratId),
+                                    new NumberContract(1001),
+                                    new ContractExpitionDate(expirationDate),
+                                    vehicle,
+                                    policy
+
+                               );
+            var optionalContract = _Optional<Contract>.Of(contract);
+            _mockContractRepository.Setup(repo => repo.GetContractById(It.IsAny<ContractId>())).ReturnsAsync(optionalContract);
+
+
+            _mockExtraCostRepository.Setup(r => r.GetExtraCostById(It.IsAny<ExtraCostId>())).
+                ReturnsAsync(_Optional<ExtraCost>.Empty);
+
+            var service = new EditOrderExtraCostsCommandHandler(_mockOrderRepository.Object,
+                _mockContractRepository.Object, _mockExtraCostRepository.Object);
+            var response = await service.Execute(new EditOrderExtraCostsCommand(orderId, data.ExtraCosts));
+            // Act
+            var result = await _controller.EditExtraCosts(data, orderId);
+
+            // Assert
+            Assert.True(result is BadRequestObjectResult);
+        }
+
+        [Fact]
+        public async Task EditExtraCosts_ReturnsBadRequest_BadStatus()
+        {
+            // Arrange
+            var conductorId = "cc964c7b-dacb-4196-9793-ed09705ba773";
+            var orderDate = new DateTime(2025, 12, 31, 23, 59, 59);
+            int orderNumber = 1001;
+            var orderId = "30d812e4-0437-496e-95e8-2037cf1f2eae";
+            var order = Order.Create(
+                              new OrderId(orderId),
+                              new OrderNumber(orderNumber),
+                              new OrderDate(orderDate),
+                              new OrderStatus("en proceso"),
+                              new IncidentType("vehiculo accidentado"),
+                              new OrderDestination("40.7128,-74.0060"),
+                              new OrderLocation("39.7128,-71.0060"),
+                              new OrderDispatcherId("0db44d22-19e6-44d0-8f09-8aa0be5a93c4"),
+                              new OrderCost(420),
+                              new ContractId("f57f0a79-b23b-496b-bcae-f9ef13529232")
+                              );
+            var orders = new List<Order>
+        {
+             order,
+        };
+            var extracdId = "ded942ce-dcbf-4e3b-bb29-13a212d8710e";
+            var extraCostest = new ExtraCost(
+                                new ExtraCostId(extracdId),
+                                new ExtraCostDescription("Cambio de neumatico"),
+                                new ExtraCostPrice(10)
+                );
+            var extraCostsL = new List<ExtraCost>
+            {
+                extraCostest,
+            };
+            order.AddExtraCosts(extraCostsL);
+            order.AssignConductor(new ConductorAssignedId(conductorId));
+            var optionalOrders = _Optional<List<Order>>.Of(orders);
+            var extraCosts = new List<ExtraCostEditedDto>
+        {
+            new ExtraCostEditedDto(extracdId, 100m)
+        };
+            var data = new EditExtraCostsDto(extraCosts);
+
+            var optionalOrder = _Optional<Order>.Of(order);
+            _mockOrderRepository.Setup(repo => repo.GetOrderById(It.IsAny<OrderId>()))
+              .ReturnsAsync(optionalOrder);
+
+            var policyId = "c4b13887-0e46-4b28-a24b-9b74c6001324";
+            var vehicleId = "fad74e97-5e31-42ff-8a06-5f1a14687a6e";
+            var contratId = "fa750e04-c73c-459f-8a5b-f599996d1b59";
+            var expirationDate = new DateTime(2033, 12, 31, 23, 59, 59);
+            var policy = new Policy(
+                 new PolicyId(policyId),
+                 new PolicyName("Policy Name"),
+                 new PolicyMonetaryCoverage(1000),
+                 new PolicyKmCoverage(100),
+                 new PolicyBaseKmPrice(10)
+                 );
+            var vehicle = new Vehicle(
+                              new VehicleId(vehicleId),
+                              new VehicleLicensePlate("ab143cd"),
+                              new VehicleBrand("Brand"),
+                              new VehicleModel("Model"),
+                              new VehicleYear(2020),
+                              new VehicleColor("Red"),
+                              new VehicleKm(10000),
+                              new VehicleOwnerDni(12345678),
+                              new VehicleOwnerName("Owner")
+                              );
+
+            var contract = Contract.Create(
+                                    new ContractId(contratId),
+                                    new NumberContract(1001),
+                                    new ContractExpitionDate(expirationDate),
+                                    vehicle,
+                                    policy
+
+                               );
+            var optionalContract = _Optional<Contract>.Of(contract);
+            _mockContractRepository.Setup(repo => repo.GetContractById(It.IsAny<ContractId>())).ReturnsAsync(optionalContract);
+
+
+            _mockExtraCostRepository.Setup(r => r.GetExtraCostById(It.IsAny<ExtraCostId>())).
+                ReturnsAsync(_Optional<ExtraCost>.Empty);
+
+            var service = new EditOrderExtraCostsCommandHandler(_mockOrderRepository.Object,
+                _mockContractRepository.Object, _mockExtraCostRepository.Object);
+            var response = await service.Execute(new EditOrderExtraCostsCommand(orderId, data.ExtraCosts));
+            // Act
+            var result = await _controller.EditExtraCosts(data, orderId);
+
+            // Assert
+            Assert.True(result is BadRequestObjectResult);
+        }
     }
 }
